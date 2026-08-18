@@ -44,6 +44,13 @@ button[hidden] {
     max(20px, env(safe-area-inset-bottom)) max(22px, env(safe-area-inset-left));
 }
 
+.start-screen {
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
 .exploration-screen {
   --explore-button-size: clamp(76px, 11vmin, 116px);
   position: relative;
@@ -57,7 +64,8 @@ button[hidden] {
   display: grid;
   grid-template-columns: repeat(3, var(--explore-button-size));
   grid-auto-rows: var(--explore-button-size);
-  gap: clamp(18px, 3vmin, 34px);
+  row-gap: clamp(30px, 4vh, 42px);
+  column-gap: clamp(38px, 5vw, 54px);
   place-content: center;
 }
 
@@ -142,6 +150,7 @@ h1 {
 }
 
 .answer-button,
+.start-button,
 .start-again-button {
   min-height: clamp(82px, 12vmin, 126px);
   border: 4px solid #376a78;
@@ -160,6 +169,7 @@ h1 {
 }
 
 .answer-button:active,
+.start-button:active,
 .start-again-button:active,
 .number-button:active,
 .start-arrow-button:active {
@@ -168,6 +178,7 @@ h1 {
 }
 
 .answer-button:focus-visible,
+.start-button:focus-visible,
 .start-again-button:focus-visible,
 .number-button:focus-visible,
 .start-arrow-button:focus-visible {
@@ -214,11 +225,20 @@ h1 {
   font-size: clamp(62px, 11vmin, 108px);
 }
 
+.start-button,
 .start-again-button {
   width: min(82vw, 520px);
   padding: 12px 30px;
-  font-size: clamp(34px, 6vmin, 58px);
   font-weight: 750;
+}
+
+.start-button {
+  min-height: clamp(112px, 18vmin, 176px);
+  font-size: clamp(48px, 8vmin, 80px);
+}
+
+.start-again-button {
+  font-size: clamp(34px, 6vmin, 58px);
 }
 
 @keyframes star-burst {

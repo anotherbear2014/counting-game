@@ -18,7 +18,7 @@ import nineUrl from './assets/audio/number-exploration/nine.wav';
 import tenUrl from './assets/audio/number-exploration/ten.wav';
 import { createSession, type ObjectKind, type Question } from './questions';
 
-type GamePhase = 'exploration' | 'question' | 'celebrating' | 'end';
+type GamePhase = 'start' | 'exploration' | 'question' | 'celebrating' | 'end';
 
 function getAppRoot(): HTMLElement {
   const element = document.querySelector<HTMLElement>('#app');
@@ -63,7 +63,7 @@ Object.values(numberSounds).forEach((sound) => {
 
 let questions: Question[] = [];
 let questionIndex = 0;
-let phase: GamePhase = 'exploration';
+let phase: GamePhase = 'start';
 let explorationHasSelection = false;
 let activeExplorationSound: HTMLAudioElement | null = null;
 
@@ -101,6 +101,15 @@ function stopExplorationSound(): void {
   activeExplorationSound = null;
 }
 
+function renderStart(): void {
+  phase = 'start';
+  explorationHasSelection = false;
+  app.innerHTML = `
+    <section class="start-screen">
+      <button class="start-button" type="button" data-start>Start</button>
+    </section>`;
+}
+
 function renderExploration(): void {
   phase = 'exploration';
   explorationHasSelection = false;
@@ -126,6 +135,14 @@ function renderExploration(): void {
         hidden
       ><span aria-hidden="true">→</span></button>
     </section>`;
+}
+
+function startExploration(): void {
+  if (phase !== 'start') {
+    return;
+  }
+
+  renderExploration();
   playExplorationSound(explorationIntro);
 }
 
@@ -236,7 +253,7 @@ function renderEnd(): void {
 }
 
 function startAgain(): void {
-  renderExploration();
+  renderStart();
 }
 
 function chooseAnswer(answer: number): void {
@@ -277,6 +294,11 @@ app.addEventListener('click', (event) => {
     return;
   }
 
+  if (target.closest('[data-start]')) {
+    startExploration();
+    return;
+  }
+
   const explorationNumber = target.closest<HTMLButtonElement>('[data-explore-number]');
   if (explorationNumber) {
     chooseExplorationNumber(Number(explorationNumber.dataset.exploreNumber));
@@ -299,4 +321,4 @@ app.addEventListener('click', (event) => {
   }
 });
 
-renderExploration();
+renderStart();
