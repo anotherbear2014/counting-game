@@ -10,8 +10,8 @@ export default defineConfig({
         name: 'Counting Game',
         short_name: 'Counting',
         description: 'A simple counting activity for young children.',
-        theme_color: '#f8f3e8',
-        background_color: '#f8f3e8',
+        theme_color: '#ffffff',
+        background_color: '#ffffff',
         display: 'standalone',
         orientation: 'any',
         start_url: '/',
@@ -36,4 +36,3 @@ export default defineConfig({
     })
   ]
 });
-

@@ -1,6 +1,6 @@
 :root {
   color: #25231f;
-  background: #f8f3e8;
+  background: #ffffff;
   font-family: ui-rounded, "Arial Rounded MT Bold", "Helvetica Neue", Arial, sans-serif;
   font-synthesis: none;
   text-rendering: optimizeLegibility;
@@ -17,7 +17,7 @@ body {
   margin: 0;
   overflow: hidden;
   overscroll-behavior: none;
-  background: #f8f3e8;
+  background: #ffffff;
 }
 
 body {
@@ -32,12 +32,63 @@ button {
   font: inherit;
 }
 
+button[hidden] {
+  display: none;
+}
+
 #app {
   width: 100%;
   height: 100%;
   height: 100dvh;
   padding: max(18px, env(safe-area-inset-top)) max(22px, env(safe-area-inset-right))
     max(20px, env(safe-area-inset-bottom)) max(22px, env(safe-area-inset-left));
+}
+
+.exploration-screen {
+  --explore-button-size: clamp(76px, 11vmin, 116px);
+  position: relative;
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+}
+
+.number-grid {
+  display: grid;
+  grid-template-columns: repeat(3, var(--explore-button-size));
+  grid-auto-rows: var(--explore-button-size);
+  gap: clamp(18px, 3vmin, 34px);
+  place-content: center;
+}
+
+.number-button:nth-child(10) {
+  grid-column: 2;
+}
+
+.number-button,
+.start-arrow-button {
+  display: grid;
+  place-items: center;
+  width: var(--explore-button-size);
+  height: var(--explore-button-size);
+  padding: 0;
+  border: 4px solid #376a78;
+  border-radius: 24px;
+  color: #213b43;
+  background: #ffffff;
+  box-shadow: 0 5px 0 #b8cbc9;
+  font-size: clamp(48px, 7vmin, 78px);
+  font-weight: 800;
+  line-height: 1;
+  cursor: pointer;
+  touch-action: manipulation;
+}
+
+.start-arrow-button {
+  position: absolute;
+  right: 0;
+  bottom: 0;
+  font-size: clamp(54px, 8vmin, 88px);
 }
 
 .game-screen {
@@ -109,13 +160,17 @@ h1 {
 }
 
 .answer-button:active,
-.start-again-button:active {
+.start-again-button:active,
+.number-button:active,
+.start-arrow-button:active {
   box-shadow: 0 2px 0 #b8cbc9;
   transform: translateY(3px);
 }
 
 .answer-button:focus-visible,
-.start-again-button:focus-visible {
+.start-again-button:focus-visible,
+.number-button:focus-visible,
+.start-arrow-button:focus-visible {
   outline: 5px solid #e2a928;
   outline-offset: 4px;
 }
@@ -191,6 +246,14 @@ h1 {
 
   .game-screen {
     gap: 8px;
+  }
+
+  .exploration-screen {
+    --explore-button-size: clamp(62px, 15vh, 88px);
+  }
+
+  .number-grid {
+    gap: 10px clamp(16px, 3vw, 28px);
   }
 
   h1 {
