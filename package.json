@@ -10,7 +10,8 @@
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
-    "validate": "node --experimental-strip-types scripts/validate-questions.ts"
+    "validate": "node --experimental-strip-types scripts/validate-questions.ts",
+    "validate:audio": "node --experimental-strip-types scripts/validate-audio-playback.mjs"
   },
   "devDependencies": {
     "typescript": "^5.9.0",

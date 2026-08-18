@@ -1,11 +1,24 @@
 import './styles.css';
+import { SpeechPlayback, chooseNonRepeatingIndex } from './audio-playback';
 import horseUrl from './assets/objects/horse.png';
 import rabbitUrl from './assets/objects/rabbit.png';
 import appleUrl from './assets/objects/apple.png';
 import carrotUrl from './assets/objects/carrot.png';
-import correctSoundUrl from './assets/audio/correct.wav';
-import tryAgainSoundUrl from './assets/audio/try-again.wav';
-import explorationIntroUrl from './assets/audio/number-exploration/intro.wav';
+import goodWorkUrl from './assets/audio/feedback/correct/good-work.wav';
+import greatJobUrl from './assets/audio/feedback/correct/great-job.wav';
+import thatsRightUrl from './assets/audio/feedback/correct/thats-right.wav';
+import tryAgainSoundUrl from './assets/audio/feedback/incorrect/try-again.wav';
+import thatsOneUrl from './assets/audio/feedback/incorrect/machine/thats-one.wav';
+import thatsTwoUrl from './assets/audio/feedback/incorrect/machine/thats-two.wav';
+import thatsThreeUrl from './assets/audio/feedback/incorrect/machine/thats-three.wav';
+import thatsFourUrl from './assets/audio/feedback/incorrect/machine/thats-four.wav';
+import thatsFiveUrl from './assets/audio/feedback/incorrect/machine/thats-five.wav';
+import thatsSixUrl from './assets/audio/feedback/incorrect/machine/thats-six.wav';
+import thatsSevenUrl from './assets/audio/feedback/incorrect/machine/thats-seven.wav';
+import thatsEightUrl from './assets/audio/feedback/incorrect/machine/thats-eight.wav';
+import thatsNineUrl from './assets/audio/feedback/incorrect/machine/thats-nine.wav';
+import thatsTenUrl from './assets/audio/feedback/incorrect/machine/thats-ten.wav';
+import explorationIntroUrl from './assets/audio/number-exploration/opening-dialogue.wav';
 import oneUrl from './assets/audio/number-exploration/one.wav';
 import twoUrl from './assets/audio/number-exploration/two.wav';
 import threeUrl from './assets/audio/number-exploration/three.wav';
@@ -39,9 +52,21 @@ const objectImages: Record<ObjectKind, string> = {
   carrot: carrotUrl
 };
 
-const correctSound = new Audio(correctSoundUrl);
+const correctSounds = [new Audio(goodWorkUrl), new Audio(greatJobUrl), new Audio(thatsRightUrl)];
 const tryAgainSound = new Audio(tryAgainSoundUrl);
 const explorationIntro = new Audio(explorationIntroUrl);
+const incorrectNumberSounds: Record<number, HTMLAudioElement> = {
+  1: new Audio(thatsOneUrl),
+  2: new Audio(thatsTwoUrl),
+  3: new Audio(thatsThreeUrl),
+  4: new Audio(thatsFourUrl),
+  5: new Audio(thatsFiveUrl),
+  6: new Audio(thatsSixUrl),
+  7: new Audio(thatsSevenUrl),
+  8: new Audio(thatsEightUrl),
+  9: new Audio(thatsNineUrl),
+  10: new Audio(thatsTenUrl)
+};
 const numberSounds: Record<number, HTMLAudioElement> = {
   1: new Audio(oneUrl),
   2: new Audio(twoUrl),
@@ -54,10 +79,13 @@ const numberSounds: Record<number, HTMLAudioElement> = {
   9: new Audio(nineUrl),
   10: new Audio(tenUrl)
 };
-correctSound.preload = 'auto';
-tryAgainSound.preload = 'auto';
-explorationIntro.preload = 'auto';
-Object.values(numberSounds).forEach((sound) => {
+[
+  ...correctSounds,
+  tryAgainSound,
+  explorationIntro,
+  ...Object.values(incorrectNumberSounds),
+  ...Object.values(numberSounds)
+].forEach((sound) => {
   sound.preload = 'auto';
 });
 
@@ -65,40 +93,22 @@ let questions: Question[] = [];
 let questionIndex = 0;
 let phase: GamePhase = 'start';
 let explorationHasSelection = false;
-let activeExplorationSound: HTMLAudioElement | null = null;
+let lastCorrectSoundIndex: number | null = null;
+const speechPlayback = new SpeechPlayback();
 
-function playSound(sound: HTMLAudioElement): void {
-  sound.pause();
-  sound.currentTime = 0;
-  void sound.play().catch(() => {
-    // A muted device or browser policy may prevent playback; the game remains usable.
-  });
+function chooseCorrectSound(): HTMLAudioElement {
+  const soundIndex = chooseNonRepeatingIndex(correctSounds.length, lastCorrectSoundIndex);
+  lastCorrectSoundIndex = soundIndex;
+  return correctSounds[soundIndex];
 }
 
-function playExplorationSound(sound: HTMLAudioElement): void {
-  if (activeExplorationSound && activeExplorationSound !== sound) {
-    activeExplorationSound.pause();
-    activeExplorationSound.currentTime = 0;
-  }
-
-  sound.pause();
-  sound.currentTime = 0;
-  activeExplorationSound = sound;
-  void sound.play().catch(() => {
-    if (activeExplorationSound === sound) {
-      activeExplorationSound = null;
-    }
-  });
-}
-
-function stopExplorationSound(): void {
-  if (!activeExplorationSound) {
+async function playIncorrectFeedback(answer: number): Promise<void> {
+  const identification = incorrectNumberSounds[answer];
+  if (!identification) {
     return;
   }
 
-  activeExplorationSound.pause();
-  activeExplorationSound.currentTime = 0;
-  activeExplorationSound = null;
+  await speechPlayback.playSequence([identification, tryAgainSound]);
 }
 
 function renderStart(): void {
@@ -143,7 +153,7 @@ function startExploration(): void {
   }
 
   renderExploration();
-  playExplorationSound(explorationIntro);
+  speechPlayback.play(explorationIntro);
 }
 
 function chooseExplorationNumber(number: number): void {
@@ -156,7 +166,7 @@ function chooseExplorationNumber(number: number): void {
     return;
   }
 
-  playExplorationSound(sound);
+  speechPlayback.play(sound);
 
   if (!explorationHasSelection) {
     explorationHasSelection = true;
@@ -169,7 +179,7 @@ function startCounting(): void {
     return;
   }
 
-  stopExplorationSound();
+  speechPlayback.stop();
   questions = createSession();
   questionIndex = 0;
   phase = 'question';
@@ -253,6 +263,7 @@ function renderEnd(): void {
 }
 
 function startAgain(): void {
+  speechPlayback.stop();
   renderStart();
 }
 
@@ -264,12 +275,11 @@ function chooseAnswer(answer: number): void {
   const question = questions[questionIndex];
 
   if (answer !== question.quantity) {
-    playSound(tryAgainSound);
+    void playIncorrectFeedback(answer);
     return;
   }
 
-  tryAgainSound.pause();
-  playSound(correctSound);
+  speechPlayback.play(chooseCorrectSound());
   phase = 'celebrating';
   renderQuestion();
 
