@@ -327,4 +327,18 @@ for word in numberWords {
       "feedback/incorrect/machine/thats-\(word).wav"
     )
   )
+
+  let generatedCorrectSource = temporaryDirectory.appendingPathComponent("yes-thats-\(word).aiff")
+  try run("/usr/bin/say", arguments: [
+    "-v", "Samantha",
+    "-o", generatedCorrectSource.path,
+    "Yes, that's \(word)."
+  ])
+
+  try processFile(
+    source: generatedCorrectSource,
+    destination: audioDirectory.appendingPathComponent(
+      "feedback/correct/machine/yes-thats-\(word).wav"
+    )
+  )
 }

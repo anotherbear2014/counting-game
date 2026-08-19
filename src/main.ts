@@ -7,6 +7,16 @@ import carrotUrl from './assets/objects/carrot.png';
 import goodWorkUrl from './assets/audio/feedback/correct/good-work.wav';
 import greatJobUrl from './assets/audio/feedback/correct/great-job.wav';
 import thatsRightUrl from './assets/audio/feedback/correct/thats-right.wav';
+import yesThatsOneUrl from './assets/audio/feedback/correct/machine/yes-thats-one.wav';
+import yesThatsTwoUrl from './assets/audio/feedback/correct/machine/yes-thats-two.wav';
+import yesThatsThreeUrl from './assets/audio/feedback/correct/machine/yes-thats-three.wav';
+import yesThatsFourUrl from './assets/audio/feedback/correct/machine/yes-thats-four.wav';
+import yesThatsFiveUrl from './assets/audio/feedback/correct/machine/yes-thats-five.wav';
+import yesThatsSixUrl from './assets/audio/feedback/correct/machine/yes-thats-six.wav';
+import yesThatsSevenUrl from './assets/audio/feedback/correct/machine/yes-thats-seven.wav';
+import yesThatsEightUrl from './assets/audio/feedback/correct/machine/yes-thats-eight.wav';
+import yesThatsNineUrl from './assets/audio/feedback/correct/machine/yes-thats-nine.wav';
+import yesThatsTenUrl from './assets/audio/feedback/correct/machine/yes-thats-ten.wav';
 import tryAgainSoundUrl from './assets/audio/feedback/incorrect/try-again.wav';
 import thatsOneUrl from './assets/audio/feedback/incorrect/machine/thats-one.wav';
 import thatsTwoUrl from './assets/audio/feedback/incorrect/machine/thats-two.wav';
@@ -31,7 +41,15 @@ import nineUrl from './assets/audio/number-exploration/nine.wav';
 import tenUrl from './assets/audio/number-exploration/ten.wav';
 import { createSession, type ObjectKind, type Question } from './questions';
 
-type GamePhase = 'start' | 'exploration' | 'question' | 'celebrating' | 'end';
+type GamePhase = 'start' | 'exploration' | 'question' | 'reinforcement' | 'end';
+
+type NumeralOrigin = {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+  fontSize: number;
+};
 
 function getAppRoot(): HTMLElement {
   const element = document.querySelector<HTMLElement>('#app');
@@ -53,6 +71,18 @@ const objectImages: Record<ObjectKind, string> = {
 };
 
 const correctSounds = [new Audio(goodWorkUrl), new Audio(greatJobUrl), new Audio(thatsRightUrl)];
+const correctNumberSounds: Record<number, HTMLAudioElement> = {
+  1: new Audio(yesThatsOneUrl),
+  2: new Audio(yesThatsTwoUrl),
+  3: new Audio(yesThatsThreeUrl),
+  4: new Audio(yesThatsFourUrl),
+  5: new Audio(yesThatsFiveUrl),
+  6: new Audio(yesThatsSixUrl),
+  7: new Audio(yesThatsSevenUrl),
+  8: new Audio(yesThatsEightUrl),
+  9: new Audio(yesThatsNineUrl),
+  10: new Audio(yesThatsTenUrl)
+};
 const tryAgainSound = new Audio(tryAgainSoundUrl);
 const explorationIntro = new Audio(explorationIntroUrl);
 const incorrectNumberSounds: Record<number, HTMLAudioElement> = {
@@ -81,6 +111,7 @@ const numberSounds: Record<number, HTMLAudioElement> = {
 };
 [
   ...correctSounds,
+  ...Object.values(correctNumberSounds),
   tryAgainSound,
   explorationIntro,
   ...Object.values(incorrectNumberSounds),
@@ -203,7 +234,7 @@ function renderObjects(question: Question): string {
     .join('');
 }
 
-function renderAnswers(question: Question, disabled: boolean): string {
+function renderAnswers(question: Question): string {
   return question.choices
     .map(
       (choice) => `
@@ -211,35 +242,14 @@ function renderAnswers(question: Question, disabled: boolean): string {
           class="answer-button"
           type="button"
           data-answer="${choice}"
-          ${disabled ? 'disabled' : ''}
           aria-label="${choice}"
         >${choice}</button>`
     )
     .join('');
 }
 
-function renderCelebration(): string {
-  const destinations = [
-    [-10, -150],
-    [110, -105],
-    [155, 20],
-    [82, 130],
-    [-72, 135],
-    [-155, 30],
-    [-115, -100]
-  ];
-  const stars = destinations
-    .map(
-      ([x, y], index) =>
-        `<span style="--star: ${index}; --star-x: ${x}px; --star-y: ${y}px">★</span>`
-    )
-    .join('');
-  return `<div class="celebration" aria-hidden="true">${stars}</div>`;
-}
-
 function renderQuestion(): void {
   const question = questions[questionIndex];
-  const isCelebrating = phase === 'celebrating';
 
   app.innerHTML = `
     <section class="game-screen" aria-label="Counting question">
@@ -248,10 +258,78 @@ function renderQuestion(): void {
         ${renderObjects(question)}
       </div>
       <div class="answer-row" aria-label="Choose a number">
-        ${renderAnswers(question, isCelebrating)}
+        ${renderAnswers(question)}
       </div>
-      ${isCelebrating ? renderCelebration() : ''}
     </section>`;
+}
+
+function getNumeralOrigin(button: HTMLButtonElement): NumeralOrigin {
+  const rect = button.getBoundingClientRect();
+  return {
+    left: rect.left,
+    top: rect.top,
+    width: rect.width,
+    height: rect.height,
+    fontSize: Number.parseFloat(window.getComputedStyle(button).fontSize)
+  };
+}
+
+function renderNumeralReinforcement(answer: number, origin: NumeralOrigin): void {
+  app.innerHTML = `
+    <section class="reinforcement-screen" aria-label="Correct answer">
+      <div
+        class="reinforced-numeral"
+        aria-label="${answer}"
+        style="
+          --source-left: ${origin.left}px;
+          --source-top: ${origin.top}px;
+          --source-width: ${origin.width}px;
+          --source-height: ${origin.height}px;
+          --source-font-size: ${origin.fontSize}px;
+        "
+      >${answer}</div>
+    </section>`;
+}
+
+function waitForNumeralTransition(): Promise<void> {
+  const numeral = app.querySelector<HTMLElement>('.reinforced-numeral');
+  if (!numeral) {
+    return Promise.resolve();
+  }
+
+  return new Promise((resolve) => {
+    numeral.addEventListener('animationend', () => resolve(), { once: true });
+  });
+}
+
+async function completeCorrectAnswer(answer: number): Promise<void> {
+  await waitForNumeralTransition();
+  if (phase !== 'reinforcement') {
+    return;
+  }
+
+  const numberSound = correctNumberSounds[answer];
+  if (!numberSound) {
+    return;
+  }
+
+  const feedbackCompleted = await speechPlayback.playSequence([
+    numberSound,
+    chooseCorrectSound()
+  ]);
+  if (!feedbackCompleted || phase !== 'reinforcement') {
+    return;
+  }
+
+  questionIndex += 1;
+  if (questionIndex === questions.length) {
+    phase = 'end';
+    renderEnd();
+    return;
+  }
+
+  phase = 'question';
+  renderQuestion();
 }
 
 function renderEnd(): void {
@@ -267,7 +345,7 @@ function startAgain(): void {
   renderStart();
 }
 
-function chooseAnswer(answer: number): void {
+function chooseAnswer(answer: number, sourceButton: HTMLButtonElement): void {
   if (phase !== 'question') {
     return;
   }
@@ -279,22 +357,11 @@ function chooseAnswer(answer: number): void {
     return;
   }
 
-  speechPlayback.play(chooseCorrectSound());
-  phase = 'celebrating';
-  renderQuestion();
-
-  window.setTimeout(() => {
-    questionIndex += 1;
-
-    if (questionIndex === questions.length) {
-      phase = 'end';
-      renderEnd();
-      return;
-    }
-
-    phase = 'question';
-    renderQuestion();
-  }, 850);
+  const origin = getNumeralOrigin(sourceButton);
+  phase = 'reinforcement';
+  speechPlayback.stop();
+  renderNumeralReinforcement(answer, origin);
+  void completeCorrectAnswer(answer);
 }
 
 app.addEventListener('click', (event) => {
@@ -322,7 +389,7 @@ app.addEventListener('click', (event) => {
 
   const answerButton = target.closest<HTMLButtonElement>('[data-answer]');
   if (answerButton) {
-    chooseAnswer(Number(answerButton.dataset.answer));
+    chooseAnswer(Number(answerButton.dataset.answer), answerButton);
     return;
   }
 

@@ -83,6 +83,17 @@ assert.equal(tryAgain.playCount, 1, 'Try again should start after the identifica
 tryAgain.finish();
 assert.equal(await incorrectSequence, true);
 
+const correctIdentification = new FakeAudio('yes-thats-ten', activeSounds);
+const dadFeedback = new FakeAudio('great-job', activeSounds);
+const correctSequence = playback.playSequence([correctIdentification, dadFeedback]);
+assert.equal(correctIdentification.playCount, 1);
+assert.equal(dadFeedback.playCount, 0, 'Dad feedback must wait for the correct numeral clip.');
+correctIdentification.finish();
+await flushPromises();
+assert.equal(dadFeedback.playCount, 1, 'Dad feedback should start after the numeral clip ends.');
+dadFeedback.finish();
+assert.equal(await correctSequence, true);
+
 const firstIdentification = new FakeAudio('thats-two', activeSounds);
 const canceledTryAgain = new FakeAudio('canceled-try-again', activeSounds);
 const supersedingSpeech = new FakeAudio('positive-feedback', activeSounds);
@@ -121,6 +132,9 @@ const expectedFiles = [
   join(audioRoot, 'feedback/incorrect/try-again.wav'),
   ...numberWords.map((word) =>
     join(audioRoot, `feedback/incorrect/machine/thats-${word}.wav`)
+  ),
+  ...numberWords.map((word) =>
+    join(audioRoot, `feedback/correct/machine/yes-thats-${word}.wav`)
   )
 ];
 
@@ -135,8 +149,11 @@ for (const file of expectedFiles) {
 
 const mainSource = readFileSync(join(process.cwd(), 'src/main.ts'), 'utf8');
 assert.doesNotMatch(mainSource, /how-many-(?:horses|rabbits|apples|carrots)/);
+assert.doesNotMatch(mainSource, /setTimeout\s*\(/);
+assert.match(mainSource, /'reinforcement'/);
 for (const word of numberWords) {
   assert.match(mainSource, new RegExp(`thats-${word}\\.wav`));
+  assert.match(mainSource, new RegExp(`yes-thats-${word}\\.wav`));
   assert.match(mainSource, new RegExp(`number-exploration/${word}\\.wav`));
 }
 
