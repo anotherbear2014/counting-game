@@ -2,6 +2,7 @@ import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { SpeechPlayback, chooseNonRepeatingIndex } from '../src/audio-playback.ts';
+import { runCorrectAnswerFeedback } from '../src/feedback-playback.ts';
 
 const numberWords = [
   'one',
@@ -17,28 +18,69 @@ const numberWords = [
 ];
 
 class FakeAudio {
-  constructor(name, activeSounds) {
-    this.name = name;
-    this.activeSounds = activeSounds;
+  constructor() {
+    this.preload = 'none';
     this.currentTime = 0;
     this.paused = true;
-    this.playCount = 0;
-    this.pauseCount = 0;
+    this.ended = false;
+    this.error = null;
     this.listeners = new Map();
+    this.playBehaviors = new Map();
+    this.playedSources = [];
+    this.loadedSources = [];
+    this.activePlayCount = 0;
+    this._src = '';
+  }
+
+  get src() {
+    return this._src;
+  }
+
+  set src(source) {
+    this._src = source;
+    this.ended = false;
+    this.error = null;
+  }
+
+  setPlayBehavior(source, behavior) {
+    this.playBehaviors.set(source, behavior);
+  }
+
+  load() {
+    this.loadedSources.push(this.src);
+    this.dispatch('loadstart');
   }
 
   play() {
+    assert.equal(this.activePlayCount, 0, `Speech overlapped while starting ${this.src}.`);
     this.paused = false;
-    this.playCount += 1;
-    this.activeSounds.add(this.name);
-    assert.equal(this.activeSounds.size, 1, `Speech overlapped while starting ${this.name}.`);
-    return Promise.resolve();
+    this.ended = false;
+    this.activePlayCount = 1;
+    this.playedSources.push(this.src);
+
+    const behavior = this.playBehaviors.get(this.src) ?? 'manual';
+    if (behavior === 'reject') {
+      this.paused = true;
+      this.activePlayCount = 0;
+      return Promise.reject(new Error(`play rejected for ${this.src}`));
+    }
+    if (behavior === 'throw') {
+      this.paused = true;
+      this.activePlayCount = 0;
+      throw new Error(`play threw for ${this.src}`);
+    }
+
+    return behavior === 'pending' ? new Promise(() => {}) : Promise.resolve();
   }
 
   pause() {
+    if (this.paused) {
+      return;
+    }
+
     this.paused = true;
-    this.pauseCount += 1;
-    this.activeSounds.delete(this.name);
+    this.activePlayCount = 0;
+    this.dispatch('pause');
   }
 
   addEventListener(type, listener) {
@@ -52,16 +94,43 @@ class FakeAudio {
   }
 
   finish() {
+    this.ended = true;
     this.paused = true;
-    this.activeSounds.delete(this.name);
-    for (const listener of [...(this.listeners.get('ended') ?? [])]) {
+    this.activePlayCount = 0;
+    this.dispatch('ended');
+  }
+
+  fail() {
+    this.error = new Error(`media error for ${this.src}`);
+    this.paused = true;
+    this.activePlayCount = 0;
+    this.dispatch('error');
+  }
+
+  interrupt() {
+    this.pause();
+  }
+
+  dispatch(type) {
+    const event = new Event(type);
+    for (const listener of [...(this.listeners.get(type) ?? [])]) {
       if (typeof listener === 'function') {
-        listener(new Event('ended'));
+        listener(event);
       } else {
-        listener.handleEvent(new Event('ended'));
+        listener.handleEvent(event);
       }
     }
   }
+}
+
+function createPlayback(clipTimeoutMs = 100) {
+  const audio = new FakeAudio();
+  const failures = [];
+  const playback = new SpeechPlayback(audio, {
+    clipTimeoutMs,
+    onFailure: (failure) => failures.push(failure)
+  });
+  return { audio, failures, playback };
 }
 
 async function flushPromises() {
@@ -69,42 +138,154 @@ async function flushPromises() {
   await Promise.resolve();
 }
 
-const activeSounds = new Set();
-const playback = new SpeechPlayback();
-const identification = new FakeAudio('thats-seven', activeSounds);
-const tryAgain = new FakeAudio('try-again', activeSounds);
-const incorrectSequence = playback.playSequence([identification, tryAgain]);
+// Successful two-clip incorrect-answer sequencing.
+{
+  const { audio, playback } = createPlayback();
+  const sequence = playback.playSequence(['thats-seven', 'try-again']);
+  assert.deepEqual(audio.playedSources, ['thats-seven']);
+  audio.finish();
+  await flushPromises();
+  assert.deepEqual(audio.playedSources, ['thats-seven', 'try-again']);
+  audio.finish();
+  assert.equal(await sequence, 'completed');
+}
 
-assert.equal(identification.playCount, 1);
-assert.equal(tryAgain.playCount, 0, 'Try again must wait for the numeral identification.');
-identification.finish();
-await flushPromises();
-assert.equal(tryAgain.playCount, 1, 'Try again should start after the identification ends.');
-tryAgain.finish();
-assert.equal(await incorrectSequence, true);
+// Successful two-clip correct-answer sequencing.
+{
+  const { audio, playback } = createPlayback();
+  const sequence = playback.playSequence(['yes-thats-ten', 'great-job']);
+  assert.deepEqual(audio.playedSources, ['yes-thats-ten']);
+  audio.finish();
+  await flushPromises();
+  assert.deepEqual(audio.playedSources, ['yes-thats-ten', 'great-job']);
+  audio.finish();
+  assert.equal(await sequence, 'completed');
+}
 
-const correctIdentification = new FakeAudio('yes-thats-ten', activeSounds);
-const dadFeedback = new FakeAudio('great-job', activeSounds);
-const correctSequence = playback.playSequence([correctIdentification, dadFeedback]);
-assert.equal(correctIdentification.playCount, 1);
-assert.equal(dadFeedback.playCount, 0, 'Dad feedback must wait for the correct numeral clip.');
-correctIdentification.finish();
-await flushPromises();
-assert.equal(dadFeedback.playCount, 1, 'Dad feedback should start after the numeral clip ends.');
-dadFeedback.finish();
-assert.equal(await correctSequence, true);
+// A rejected second play call resolves as failed instead of hanging.
+{
+  const { audio, failures, playback } = createPlayback();
+  audio.setPlayBehavior('great-job', 'reject');
+  const sequence = playback.playSequence(['yes-thats-four', 'great-job']);
+  audio.finish();
+  assert.equal(await sequence, 'failed');
+  assert.equal(failures.length, 1);
+  assert.deepEqual(audio.playedSources, ['yes-thats-four', 'great-job']);
+}
 
-const firstIdentification = new FakeAudio('thats-two', activeSounds);
-const canceledTryAgain = new FakeAudio('canceled-try-again', activeSounds);
-const supersedingSpeech = new FakeAudio('positive-feedback', activeSounds);
-const canceledSequence = playback.playSequence([firstIdentification, canceledTryAgain]);
-playback.play(supersedingSpeech);
-await flushPromises();
-assert.equal(firstIdentification.paused, true);
-assert.equal(canceledTryAgain.playCount, 0, 'A superseded sequence must not continue.');
-assert.equal(supersedingSpeech.playCount, 1);
-assert.equal(await canceledSequence, false);
-supersedingSpeech.finish();
+// A media error during the second clip resolves as failed.
+{
+  const { audio, failures, playback } = createPlayback();
+  const sequence = playback.playSequence(['yes-thats-six', 'thats-right']);
+  audio.finish();
+  await flushPromises();
+  audio.fail();
+  assert.equal(await sequence, 'failed');
+  assert.equal(failures.length, 1);
+}
+
+// A first-clip failure does not prevent the second clip from being attempted.
+{
+  const { audio, playback } = createPlayback();
+  const sequence = playback.playSequence(['thats-two', 'try-again']);
+  audio.fail();
+  await flushPromises();
+  assert.deepEqual(audio.playedSources, ['thats-two', 'try-again']);
+  audio.finish();
+  assert.equal(await sequence, 'failed');
+}
+
+// Cancellation settles the old sequence and prevents its next clip.
+{
+  const { audio, playback } = createPlayback();
+  const sequence = playback.playSequence(['thats-three', 'try-again']);
+  playback.stop();
+  assert.equal(await sequence, 'cancelled');
+  assert.deepEqual(audio.playedSources, ['thats-three']);
+  assert.equal(audio.paused, true);
+}
+
+// An interrupted clip is a failure, not an unresolved wait.
+{
+  const { audio, playback } = createPlayback();
+  const sequence = playback.play('opening-dialogue');
+  audio.interrupt();
+  assert.equal(await sequence, 'failed');
+}
+
+// Even a play promise with no resolution and no media events is bounded.
+{
+  const { audio, failures, playback } = createPlayback(10);
+  audio.setPlayBehavior('stalled-clip', 'pending');
+  assert.equal(await playback.play('stalled-clip'), 'failed');
+  assert.equal(failures.length, 1);
+}
+
+// Correct-answer state advances after failed Dad praise.
+{
+  const { audio, playback } = createPlayback();
+  audio.setPlayBehavior('great-job', 'reject');
+  let phase = 'reinforcement';
+  let advances = 0;
+  const feedback = runCorrectAnswerFeedback(
+    playback,
+    ['yes-thats-four', 'great-job'],
+    () => phase === 'reinforcement',
+    () => {
+      advances += 1;
+      phase = 'question';
+    }
+  );
+  audio.finish();
+  assert.equal(await feedback, 'failed');
+  assert.equal(advances, 1);
+  assert.equal(phase, 'question');
+}
+
+// Failed incorrect feedback leaves the question usable for new playback.
+{
+  const { audio, playback } = createPlayback();
+  let phase = 'question';
+  audio.setPlayBehavior('thats-five', 'reject');
+  const failedFeedback = playback.playSequence(['thats-five', 'try-again']);
+  await flushPromises();
+  audio.finish();
+  assert.equal(await failedFeedback, 'failed');
+  assert.equal(phase, 'question');
+
+  const nextAttempt = playback.play('thats-six');
+  audio.finish();
+  assert.equal(await nextAttempt, 'completed');
+  assert.equal(phase, 'question');
+}
+
+// Superseding playback cannot overlap or let stale completion start an old clip.
+{
+  const { audio, playback } = createPlayback();
+  const staleSequence = playback.playSequence(['old-identification', 'old-praise']);
+  const currentSequence = playback.play('current-feedback');
+  assert.equal(await staleSequence, 'cancelled');
+  assert.deepEqual(audio.playedSources, ['old-identification', 'current-feedback']);
+
+  audio.ended = false;
+  audio.dispatch('ended');
+  await flushPromises();
+  assert.deepEqual(audio.playedSources, ['old-identification', 'current-feedback']);
+  audio.finish();
+  assert.equal(await currentSequence, 'completed');
+  assert.equal(audio.playedSources.includes('old-praise'), false);
+}
+
+// Preloading prepares the first expected clip without creating another player.
+{
+  const { audio, playback } = createPlayback();
+  playback.preload('yes-thats-nine');
+  assert.deepEqual(audio.loadedSources, ['yes-thats-nine']);
+  const sequence = playback.play('yes-thats-nine');
+  assert.deepEqual(audio.loadedSources, ['yes-thats-nine']);
+  audio.finish();
+  assert.equal(await sequence, 'completed');
+}
 
 const randomValues = [0.02, 0.31, 0.67, 0.98];
 let randomIndex = 0;
@@ -151,6 +332,12 @@ const mainSource = readFileSync(join(process.cwd(), 'src/main.ts'), 'utf8');
 assert.doesNotMatch(mainSource, /how-many-(?:horses|rabbits|apples|carrots)/);
 assert.doesNotMatch(mainSource, /setTimeout\s*\(/);
 assert.match(mainSource, /'reinforcement'/);
+assert.equal(
+  mainSource.match(/new Audio\s*\(/g)?.length,
+  1,
+  'The application must create exactly one persistent audio element.'
+);
+assert.match(mainSource, /play\(explorationIntroUrl\)/, 'Start must play the real opening dialogue.');
 for (const word of numberWords) {
   assert.match(mainSource, new RegExp(`thats-${word}\\.wav`));
   assert.match(mainSource, new RegExp(`yes-thats-${word}\\.wav`));
@@ -158,5 +345,5 @@ for (const word of numberWords) {
 }
 
 console.log(
-  `Audio playback sequencing, non-repeating feedback, and ${expectedFiles.length} local WAV files passed validation.`
+  `Persistent audio playback recovery, game-state continuation, non-repeating feedback, and ${expectedFiles.length} local WAV files passed validation.`
 );

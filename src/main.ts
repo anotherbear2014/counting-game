@@ -1,5 +1,6 @@
 import './styles.css';
 import { SpeechPlayback, chooseNonRepeatingIndex } from './audio-playback';
+import { runCorrectAnswerFeedback } from './feedback-playback';
 import horseUrl from './assets/objects/horse.png';
 import rabbitUrl from './assets/objects/rabbit.png';
 import appleUrl from './assets/objects/apple.png';
@@ -70,64 +71,54 @@ const objectImages: Record<ObjectKind, string> = {
   carrot: carrotUrl
 };
 
-const correctSounds = [new Audio(goodWorkUrl), new Audio(greatJobUrl), new Audio(thatsRightUrl)];
-const correctNumberSounds: Record<number, HTMLAudioElement> = {
-  1: new Audio(yesThatsOneUrl),
-  2: new Audio(yesThatsTwoUrl),
-  3: new Audio(yesThatsThreeUrl),
-  4: new Audio(yesThatsFourUrl),
-  5: new Audio(yesThatsFiveUrl),
-  6: new Audio(yesThatsSixUrl),
-  7: new Audio(yesThatsSevenUrl),
-  8: new Audio(yesThatsEightUrl),
-  9: new Audio(yesThatsNineUrl),
-  10: new Audio(yesThatsTenUrl)
+const correctSounds = [goodWorkUrl, greatJobUrl, thatsRightUrl];
+const correctNumberSounds: Record<number, string> = {
+  1: yesThatsOneUrl,
+  2: yesThatsTwoUrl,
+  3: yesThatsThreeUrl,
+  4: yesThatsFourUrl,
+  5: yesThatsFiveUrl,
+  6: yesThatsSixUrl,
+  7: yesThatsSevenUrl,
+  8: yesThatsEightUrl,
+  9: yesThatsNineUrl,
+  10: yesThatsTenUrl
 };
-const tryAgainSound = new Audio(tryAgainSoundUrl);
-const explorationIntro = new Audio(explorationIntroUrl);
-const incorrectNumberSounds: Record<number, HTMLAudioElement> = {
-  1: new Audio(thatsOneUrl),
-  2: new Audio(thatsTwoUrl),
-  3: new Audio(thatsThreeUrl),
-  4: new Audio(thatsFourUrl),
-  5: new Audio(thatsFiveUrl),
-  6: new Audio(thatsSixUrl),
-  7: new Audio(thatsSevenUrl),
-  8: new Audio(thatsEightUrl),
-  9: new Audio(thatsNineUrl),
-  10: new Audio(thatsTenUrl)
+const incorrectNumberSounds: Record<number, string> = {
+  1: thatsOneUrl,
+  2: thatsTwoUrl,
+  3: thatsThreeUrl,
+  4: thatsFourUrl,
+  5: thatsFiveUrl,
+  6: thatsSixUrl,
+  7: thatsSevenUrl,
+  8: thatsEightUrl,
+  9: thatsNineUrl,
+  10: thatsTenUrl
 };
-const numberSounds: Record<number, HTMLAudioElement> = {
-  1: new Audio(oneUrl),
-  2: new Audio(twoUrl),
-  3: new Audio(threeUrl),
-  4: new Audio(fourUrl),
-  5: new Audio(fiveUrl),
-  6: new Audio(sixUrl),
-  7: new Audio(sevenUrl),
-  8: new Audio(eightUrl),
-  9: new Audio(nineUrl),
-  10: new Audio(tenUrl)
+const numberSounds: Record<number, string> = {
+  1: oneUrl,
+  2: twoUrl,
+  3: threeUrl,
+  4: fourUrl,
+  5: fiveUrl,
+  6: sixUrl,
+  7: sevenUrl,
+  8: eightUrl,
+  9: nineUrl,
+  10: tenUrl
 };
-[
-  ...correctSounds,
-  ...Object.values(correctNumberSounds),
-  tryAgainSound,
-  explorationIntro,
-  ...Object.values(incorrectNumberSounds),
-  ...Object.values(numberSounds)
-].forEach((sound) => {
-  sound.preload = 'auto';
-});
 
 let questions: Question[] = [];
 let questionIndex = 0;
 let phase: GamePhase = 'start';
 let explorationHasSelection = false;
 let lastCorrectSoundIndex: number | null = null;
-const speechPlayback = new SpeechPlayback();
+// This is the app's only media element. Reusing it preserves the Start-tap
+// activation across every later spoken clip in iPad standalone mode.
+const speechPlayback = new SpeechPlayback(new Audio());
 
-function chooseCorrectSound(): HTMLAudioElement {
+function chooseCorrectSound(): string {
   const soundIndex = chooseNonRepeatingIndex(correctSounds.length, lastCorrectSoundIndex);
   lastCorrectSoundIndex = soundIndex;
   return correctSounds[soundIndex];
@@ -139,7 +130,7 @@ async function playIncorrectFeedback(answer: number): Promise<void> {
     return;
   }
 
-  await speechPlayback.playSequence([identification, tryAgainSound]);
+  await speechPlayback.playSequence([identification, tryAgainSoundUrl]);
 }
 
 function renderStart(): void {
@@ -184,7 +175,7 @@ function startExploration(): void {
   }
 
   renderExploration();
-  speechPlayback.play(explorationIntro);
+  void speechPlayback.play(explorationIntroUrl);
 }
 
 function chooseExplorationNumber(number: number): void {
@@ -197,7 +188,7 @@ function chooseExplorationNumber(number: number): void {
     return;
   }
 
-  speechPlayback.play(sound);
+  void speechPlayback.play(sound);
 
   if (!explorationHasSelection) {
     explorationHasSelection = true;
@@ -313,14 +304,15 @@ async function completeCorrectAnswer(answer: number): Promise<void> {
     return;
   }
 
-  const feedbackCompleted = await speechPlayback.playSequence([
-    numberSound,
-    chooseCorrectSound()
-  ]);
-  if (!feedbackCompleted || phase !== 'reinforcement') {
-    return;
-  }
+  await runCorrectAnswerFeedback(
+    speechPlayback,
+    [numberSound, chooseCorrectSound()],
+    () => phase === 'reinforcement',
+    advanceToNextQuestion
+  );
+}
 
+function advanceToNextQuestion(): void {
   questionIndex += 1;
   if (questionIndex === questions.length) {
     phase = 'end';
@@ -361,6 +353,7 @@ function chooseAnswer(answer: number, sourceButton: HTMLButtonElement): void {
   phase = 'reinforcement';
   speechPlayback.stop();
   renderNumeralReinforcement(answer, origin);
+  speechPlayback.preload(correctNumberSounds[answer]);
   void completeCorrectAnswer(answer);
 }
 
