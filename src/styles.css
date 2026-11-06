@@ -1,4 +1,5 @@
 :root {
+  --star-animation-duration: 1760ms;
   color: #25231f;
   background: #ffffff;
   font-family: ui-rounded, "Arial Rounded MT Bold", "Helvetica Neue", Arial, sans-serif;
@@ -227,6 +228,7 @@ h1 {
 
 .reinforced-numeral {
   position: fixed;
+  z-index: 2;
   left: var(--source-left);
   top: var(--source-top);
   display: grid;
@@ -245,6 +247,25 @@ h1 {
   transform-origin: center;
   animation: numeral-to-center 440ms cubic-bezier(0.22, 0.75, 0.25, 1) forwards;
   will-change: left, top, width, height, transform, font-size;
+}
+
+.celebration {
+  position: absolute;
+  inset: 0;
+  z-index: 1;
+}
+
+.celebration-star {
+  position: absolute;
+  left: var(--star-left);
+  top: var(--star-top);
+  color: #e2a928;
+  font-size: clamp(32px, 7vmin, 68px);
+  line-height: 1;
+  opacity: 0;
+  transform: translate(-50%, -50%) scale(0.25) rotate(-25deg);
+  animation: star-pop var(--star-animation-duration) cubic-bezier(0.2, 0.85, 0.35, 1.3)
+    var(--star-delay) both;
 }
 
 .end-screen {
@@ -292,6 +313,22 @@ h1 {
   }
 }
 
+@keyframes star-pop {
+  0% {
+    opacity: 0;
+    transform: translate(-50%, -50%) scale(0.25) rotate(-25deg);
+  }
+  35%,
+  72% {
+    opacity: 1;
+    transform: translate(-50%, -50%) scale(1) rotate(8deg);
+  }
+  100% {
+    opacity: 0;
+    transform: translate(-50%, -62%) scale(0.7) rotate(24deg);
+  }
+}
+
 @media (max-height: 560px) {
   #app {
     padding-top: max(10px, env(safe-area-inset-top));
@@ -333,5 +370,9 @@ h1 {
 
   .reinforced-numeral {
     animation-duration: 180ms;
+  }
+
+  .celebration-star {
+    animation-duration: 1420ms;
   }
 }

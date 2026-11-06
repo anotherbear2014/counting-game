@@ -1,5 +1,6 @@
 import './styles.css';
 import { SpeechPlayback, chooseNonRepeatingIndex } from './audio-playback';
+import { renderCelebration } from './celebration';
 import { runCorrectAnswerFeedback } from './feedback-playback';
 import horseUrl from './assets/objects/horse.png';
 import rabbitUrl from './assets/objects/rabbit.png';
@@ -273,6 +274,7 @@ function getNumeralOrigin(button: HTMLButtonElement): NumeralOrigin {
 function renderNumeralReinforcement(answer: number, origin: NumeralOrigin): void {
   app.innerHTML = `
     <section class="reinforcement-screen" aria-label="Correct answer">
+      ${renderCelebration()}
       <div
         class="reinforced-numeral"
         aria-label="${answer}"
