@@ -44,18 +44,6 @@ for (let seed = 1; seed <= 10_000; seed += 1) {
         .every((choice) => Math.abs(choice - question.quantity) <= 2),
       `${label}: incorrect choices must be close to the correct answer`
     );
-    assert(
-      question.positions.length === question.quantity,
-      `${label}: object count must equal the quantity`
-    );
-    assert(
-      new Set(question.positions).size === question.positions.length,
-      `${label}: object positions must not overlap`
-    );
-    assert(
-      question.positions.every((position) => Number.isInteger(position) && position >= 0 && position < 12),
-      `${label}: object position is outside the board`
-    );
   });
 }
 

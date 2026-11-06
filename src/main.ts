@@ -209,18 +209,23 @@ function startCounting(): void {
 }
 
 function renderObjects(question: Question): string {
-  return question.positions
+  return Array.from({ length: question.quantity }, (_, index) => index)
     .map(
-      (position, index) => `
-        <img
+      (index) => `
+        <button
           class="counting-object"
-          src="${objectImages[question.objectKind]}"
-          alt=""
-          draggable="false"
-          style="--column: ${(position % 4) + 1}; --row: ${Math.floor(position / 4) + 1}; --tilt: ${
-            ((position * 7 + index * 3) % 9) - 4
-          }deg"
-        />`
+          type="button"
+          data-counting-object
+          aria-label="Object ${index + 1} of ${question.quantity}"
+          aria-pressed="false"
+        >
+          <img
+            class="counting-object-image"
+            src="${objectImages[question.objectKind]}"
+            alt=""
+            draggable="false"
+          />
+        </button>`
     )
     .join('');
 }
@@ -245,7 +250,7 @@ function renderQuestion(): void {
   app.innerHTML = `
     <section class="game-screen" aria-label="Counting question">
       <h1>How many?</h1>
-      <div class="object-board" aria-hidden="true">
+      <div class="object-board" role="group" aria-label="Objects to count">
         ${renderObjects(question)}
       </div>
       <div class="answer-row" aria-label="Choose a number">
@@ -357,6 +362,15 @@ function chooseAnswer(answer: number, sourceButton: HTMLButtonElement): void {
   void completeCorrectAnswer(answer);
 }
 
+function toggleCountedObject(objectButton: HTMLButtonElement): void {
+  if (phase !== 'question') {
+    return;
+  }
+
+  const isCounted = objectButton.getAttribute('aria-pressed') === 'true';
+  objectButton.setAttribute('aria-pressed', String(!isCounted));
+}
+
 app.addEventListener('click', (event) => {
   const target = event.target;
 
@@ -377,6 +391,12 @@ app.addEventListener('click', (event) => {
 
   if (target.closest('[data-start-counting]')) {
     startCounting();
+    return;
+  }
+
+  const countingObject = target.closest<HTMLButtonElement>('[data-counting-object]');
+  if (countingObject) {
+    toggleCountedObject(countingObject);
     return;
   }
 

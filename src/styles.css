@@ -120,25 +120,51 @@ h1 {
 
 .object-board {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
-  grid-template-rows: repeat(3, minmax(0, 1fr));
-  align-items: center;
-  justify-items: center;
-  width: min(100%, 880px);
+  grid-template-columns: repeat(4, clamp(92px, 16vmin, 132px));
+  grid-auto-rows: clamp(92px, 16vmin, 132px);
+  grid-auto-flow: row;
+  gap: clamp(12px, 2vh, 20px) clamp(28px, 5vw, 56px);
+  place-content: center;
+  width: min(100%, 760px);
   min-height: 0;
   margin: 0 auto;
-  padding: clamp(4px, 1vmin, 12px);
+  padding: clamp(4px, 1vmin, 10px);
 }
 
 .counting-object {
-  grid-column: var(--column);
-  grid-row: var(--row);
+  display: grid;
+  place-items: center;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  appearance: none;
+  background: transparent;
+  cursor: pointer;
+  touch-action: manipulation;
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+.counting-object-image {
   display: block;
-  width: clamp(58px, 11vmin, 112px);
-  height: clamp(58px, 11vmin, 112px);
+  width: 100%;
+  height: 100%;
   object-fit: contain;
   pointer-events: none;
-  transform: rotate(var(--tilt));
+  -webkit-user-drag: none;
+  opacity: 1;
+  transition: opacity 140ms ease-out;
+}
+
+.counting-object[aria-pressed='true'] .counting-object-image {
+  opacity: 0.38;
+}
+
+.counting-object:focus-visible {
+  border-radius: 18px;
+  outline: 5px solid #e2a928;
+  outline-offset: 4px;
 }
 
 .answer-row {
@@ -288,9 +314,10 @@ h1 {
     font-size: clamp(32px, 8vh, 46px);
   }
 
-  .counting-object {
-    width: clamp(46px, 14vh, 78px);
-    height: clamp(46px, 14vh, 78px);
+  .object-board {
+    grid-template-columns: repeat(4, clamp(58px, 14vh, 78px));
+    grid-auto-rows: clamp(58px, 14vh, 78px);
+    gap: 6px clamp(18px, 4vw, 38px);
   }
 
   .answer-button {
@@ -300,6 +327,10 @@ h1 {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .counting-object-image {
+    transition: none;
+  }
+
   .reinforced-numeral {
     animation-duration: 180ms;
   }

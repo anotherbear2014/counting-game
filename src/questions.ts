@@ -7,11 +7,9 @@ export interface Question {
   quantity: number;
   objectKind: ObjectKind;
   choices: number[];
-  positions: number[];
 }
 
 const QUANTITIES = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10] as const;
-const BOARD_POSITIONS = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11] as const;
 
 export function shuffle<T>(values: readonly T[], random: RandomSource = Math.random): T[] {
   const result = [...values];
@@ -57,10 +55,6 @@ function createObjectSequence(length: number, random: RandomSource): ObjectKind[
   return sequence.slice(0, length);
 }
 
-function createPositions(quantity: number, random: RandomSource): number[] {
-  return shuffle(BOARD_POSITIONS, random).slice(0, quantity);
-}
-
 export function createSession(random: RandomSource = Math.random): Question[] {
   const quantities = shuffle(QUANTITIES, random);
   const objectKinds = createObjectSequence(quantities.length, random);
@@ -68,8 +62,6 @@ export function createSession(random: RandomSource = Math.random): Question[] {
   return quantities.map((quantity, index) => ({
     quantity,
     objectKind: objectKinds[index],
-    choices: createAnswerChoices(quantity, random),
-    positions: createPositions(quantity, random)
+    choices: createAnswerChoices(quantity, random)
   }));
 }
-

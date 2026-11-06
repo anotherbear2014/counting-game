@@ -61,11 +61,11 @@ For each question:
 * Select one object type.
 * Select a quantity from 1–10.
 * Display exactly that many objects.
-* Objects must not overlap.
-* Object positions should vary between questions.
-* Avoid always displaying quantities in identical rows or patterns.
+* Display objects in a consistent four-column grid, filling left to right and then top to bottom.
+* Objects must not overlap or vary in position.
 * Objects must remain easily distinguishable and countable.
-* Tapping an object does nothing.
+* Tapping an object dims it to mark it as counted; tapping it again restores it.
+* Counted state resets for every new question and does not affect answer behavior.
 
 Across a 10-question session, quantities should be reasonably distributed rather than selected completely independently at random.
 
