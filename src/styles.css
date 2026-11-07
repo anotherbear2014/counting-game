@@ -121,10 +121,12 @@ h1 {
 
 .object-board {
   display: grid;
-  grid-template-columns: repeat(4, clamp(92px, 16vmin, 132px));
-  grid-auto-rows: clamp(92px, 16vmin, 132px);
+  --object-image-size: clamp(92px, 16vmin, 132px);
+  --object-cell-size: clamp(116px, 19.2vmin, 158px);
+  grid-template-columns: repeat(4, var(--object-cell-size));
+  grid-auto-rows: var(--object-cell-size);
   grid-auto-flow: row;
-  gap: clamp(12px, 2vh, 20px) clamp(28px, 5vw, 56px);
+  gap: clamp(16px, 2.6vh, 24px) clamp(24px, 3.2vw, 36px);
   place-content: center;
   width: min(100%, 760px);
   min-height: 0;
@@ -149,8 +151,8 @@ h1 {
 
 .counting-object-image {
   display: block;
-  width: 100%;
-  height: 100%;
+  width: var(--object-image-size);
+  height: var(--object-image-size);
   object-fit: contain;
   pointer-events: none;
   -webkit-user-drag: none;
@@ -352,8 +354,10 @@ h1 {
   }
 
   .object-board {
-    grid-template-columns: repeat(4, clamp(58px, 14vh, 78px));
-    grid-auto-rows: clamp(58px, 14vh, 78px);
+    --object-image-size: clamp(58px, 14vh, 78px);
+    --object-cell-size: clamp(66px, 16vh, 90px);
+    grid-template-columns: repeat(4, var(--object-cell-size));
+    grid-auto-rows: var(--object-cell-size);
     gap: 6px clamp(18px, 4vw, 38px);
   }
 
