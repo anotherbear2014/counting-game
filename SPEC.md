@@ -162,6 +162,9 @@ Use recognizable illustrations of:
 * rabbits
 * apples
 * carrots
+* unicorns
+* clownfish
+* ducks
 
 Avoid visually busy backgrounds.
 

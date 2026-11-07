@@ -6,6 +6,9 @@ import horseUrl from './assets/objects/horse.png';
 import rabbitUrl from './assets/objects/rabbit.png';
 import appleUrl from './assets/objects/apple.png';
 import carrotUrl from './assets/objects/carrot.png';
+import unicornUrl from './assets/objects/unicorn.png';
+import clownfishUrl from './assets/objects/clownfish.png';
+import duckUrl from './assets/objects/duck.png';
 import goodWorkUrl from './assets/audio/feedback/correct/good-work.wav';
 import greatJobUrl from './assets/audio/feedback/correct/great-job.wav';
 import thatsRightUrl from './assets/audio/feedback/correct/thats-right.wav';
@@ -69,7 +72,10 @@ const objectImages: Record<ObjectKind, string> = {
   horse: horseUrl,
   rabbit: rabbitUrl,
   apple: appleUrl,
-  carrot: carrotUrl
+  carrot: carrotUrl,
+  unicorn: unicornUrl,
+  clownfish: clownfishUrl,
+  duck: duckUrl
 };
 
 const correctSounds = [goodWorkUrl, greatJobUrl, thatsRightUrl];

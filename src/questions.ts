@@ -1,4 +1,4 @@
-export const OBJECT_KINDS = ['horse', 'rabbit', 'apple', 'carrot'] as const;
+export const OBJECT_KINDS = ['horse', 'rabbit', 'apple', 'carrot', 'unicorn', 'clownfish', 'duck'] as const;
 
 export type ObjectKind = (typeof OBJECT_KINDS)[number];
 export type RandomSource = () => number;
