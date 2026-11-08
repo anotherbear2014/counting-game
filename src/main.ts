@@ -257,6 +257,7 @@ function renderQuestion(): void {
   app.innerHTML = `
     <section class="game-screen" aria-label="Counting question">
       <h1>How many?</h1>
+      <button class="clear-button" type="button" data-clear-counted>Clear</button>
       <div class="object-board" role="group" aria-label="Objects to count">
         ${renderObjects(question)}
       </div>
@@ -379,6 +380,15 @@ function toggleCountedObject(objectButton: HTMLButtonElement): void {
   objectButton.setAttribute('aria-pressed', String(!isCounted));
 }
 
+function clearCountedObjects(): void {
+  if (phase !== 'question') {
+    return;
+  }
+
+  app.querySelectorAll<HTMLButtonElement>('[data-counting-object][aria-pressed="true"]')
+    .forEach((objectButton) => objectButton.setAttribute('aria-pressed', 'false'));
+}
+
 app.addEventListener('click', (event) => {
   const target = event.target;
 
@@ -399,6 +409,11 @@ app.addEventListener('click', (event) => {
 
   if (target.closest('[data-start-counting]')) {
     startCounting();
+    return;
+  }
+
+  if (target.closest('[data-clear-counted]')) {
+    clearCountedObjects();
     return;
   }
 
