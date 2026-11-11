@@ -31,7 +31,7 @@ for (let seed = 1; seed <= 10_000; seed += 1) {
   );
 
   observedOrders.add(session.map(q => q.objectKind).join(','));
-  assert(new Set(session.map(q => q.objectKind)).size === 7, `Seed ${seed}: all seven kinds must appear`);
+  assert(new Set(session.map(q => q.objectKind)).size === 10, `Seed ${seed}: all ten kinds must appear`);
   session.forEach((question, index) => {
     observedPairs.add(`${question.objectKind}:${question.quantity}`);
     assert(index === 0 || question.objectKind !== session[index - 1].objectKind, 'Adjacent kinds must differ');
@@ -59,7 +59,7 @@ assert(
   'The correct answer must appear in all three button positions across generated sessions'
 );
 
-assert(observedPairs.size === 70, 'All seven kinds must occur with all ten quantities');
+assert(observedPairs.size === 100, 'All ten kinds must occur with all ten quantities');
 assert(observedOrders.size > 100, 'Object orders must vary across sessions');
 
 console.log('Question invariants passed for 10,000 deterministic sessions.');

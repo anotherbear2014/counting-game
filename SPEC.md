@@ -43,6 +43,12 @@ Available object classes:
 * Rabbit
 * Apple
 * Carrot
+* Unicorn
+* Clownfish
+* Duck
+* Turtle
+* Bumblebee
+* Ladybug
 
 Example:
 
@@ -165,6 +171,9 @@ Use recognizable illustrations of:
 * unicorns
 * clownfish
 * ducks
+* turtles
+* bumblebees
+* ladybugs
 
 Avoid visually busy backgrounds.
 
