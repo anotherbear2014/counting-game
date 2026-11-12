@@ -2,7 +2,7 @@ export const OBJECT_KINDS = [
   'horse',
   'rabbit',
   'apple',
-  'carrot',
+  'frog',
   'unicorn',
   'clownfish',
   'duck',

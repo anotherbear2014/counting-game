@@ -42,7 +42,7 @@ Available object classes:
 * Horse
 * Rabbit
 * Apple
-* Carrot
+* Frog
 * Unicorn
 * Clownfish
 * Duck
@@ -167,7 +167,7 @@ Use recognizable illustrations of:
 * horses
 * rabbits
 * apples
-* carrots
+* frogs
 * unicorns
 * clownfish
 * ducks

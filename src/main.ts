@@ -5,7 +5,7 @@ import { runCorrectAnswerFeedback } from './feedback-playback';
 import horseUrl from './assets/objects/horse.png';
 import rabbitUrl from './assets/objects/rabbit.png';
 import appleUrl from './assets/objects/apple.png';
-import carrotUrl from './assets/objects/carrot.png';
+import frogUrl from './assets/objects/frog.png';
 import unicornUrl from './assets/objects/unicorn.png';
 import clownfishUrl from './assets/objects/clownfish.png';
 import duckUrl from './assets/objects/duck.png';
@@ -75,7 +75,7 @@ const objectImages: Record<ObjectKind, string> = {
   horse: horseUrl,
   rabbit: rabbitUrl,
   apple: appleUrl,
-  carrot: carrotUrl,
+  frog: frogUrl,
   unicorn: unicornUrl,
   clownfish: clownfishUrl,
   duck: duckUrl,
